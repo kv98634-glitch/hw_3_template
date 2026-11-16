@@ -33,3 +33,39 @@ curl -fsS http://127.0.0.1:8080/readyz
 2026-11-16 15:25:18,080 http 172.17.0.1 "GET / HTTP/1.1" 200 -
 2026-11-16 15:25:18,088 http 172.17.0.1 "GET /readyz HTTP/1.1" 200 -
 ```
+## 6 баллов: Compose и данные
+
+Запуск:
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+Увеличиваем счётчик до удаления контейнера:
+```bash
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+curl -fsS http://127.0.0.1:8080/; echo
+```
+```
+{"greeting": "Привет, ВШЭ", "count": 1, "hostname": "980b33040d4f", "storage": "sqlite"}
+{"greeting": "Привет, ВШЭ", "count": 2, "hostname": "980b33040d4f", "storage": "sqlite"}
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "980b33040d4f", "storage": "sqlite"}
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "980b33040d4f", "storage": "sqlite"}
+```
+
+Удаляем контейнер и создаём заново:
+```bash
+docker compose down
+docker compose up -d
+curl -fsS http://127.0.0.1:8080/; echo
+docker volume ls
+docker compose ps
+```
+```
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "6dd4d124e8c4", "storage": "sqlite"}
+DRIVER    VOLUME NAME
+local     hw_3_template_app_data
+```
+
