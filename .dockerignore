@@ -1,0 +1,12 @@
+.git
+.gitignore
+.idea
+.vscode
+.env
+__pycache__
+*.pyc
+.venv
+venv
+compose.yaml
+README.md
+REPORT.md
