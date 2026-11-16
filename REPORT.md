@@ -69,3 +69,67 @@ DRIVER    VOLUME NAME
 local     hw_3_template_app_data
 ```
 
+## 8 баллов: отдельное хранилище (Redis)
+
+Запуск:
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+### Проверка 1: данные сохраняются после down/up
+```bash
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+curl -fsS http://127.0.0.1:8080/; echo
+docker compose down
+docker compose up -d
+sleep 10
+curl -fsS http://127.0.0.1:8080/; echo
+```
+```
+{"greeting": "Привет, ВШЭ", "count": 1, "hostname": "9894b4d35083", "storage": "redis"}
+{"greeting": "Привет, ВШЭ", "count": 2, "hostname": "9894b4d35083", "storage": "redis"}
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "9894b4d35083", "storage": "redis"}
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "9894b4d35083", "storage": "redis"}
+[+] Running 3/3
+ ✔ Container hw_3_template-app-1    Removed
+ ✔ Container hw_3_template-redis-1  Removed
+ ✔ Network hw_3_template_default    Removed
+[+] Running 3/3
+ ✔ Network hw_3_template_default    Created
+ ✔ Container hw_3_template-redis-1  Healthy
+ ✔ Container hw_3_template-app-1    Started
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "43a99841ed09", "storage": "redis"}
+```
+
+
+### Проверка 2: Redis остановлен
+```bash
+docker compose stop redis
+curl -s -o /dev/null -w "healthz: %{http_code}\n" http://127.0.0.1:8080/healthz
+curl -s -o /dev/null -w "readyz: %{http_code}\n" http://127.0.0.1:8080/readyz
+curl -s -o /dev/null -w "POST increment: %{http_code}\n" -X POST http://127.0.0.1:8080/increment
+```
+```
+healthz: 200
+readyz: 503
+POST increment: 503
+```
+
+### Проверка 3: Redis снова запущен
+```bash
+docker compose start redis
+sleep 10
+docker compose ps
+curl -fsS http://127.0.0.1:8080/; echo
+curl -fsS -X POST http://127.0.0.1:8080/increment; echo
+```
+```
+NAME                    IMAGE                COMMAND                  SERVICE   CREATED          STATUS                    PORTS
+hw_3_template-app-1     hw_3_template-app    "python app.py"          app       About a minute ago   Up About a minute (healthy)   0.0.0.0:8080->8000/tcp, [::]:8080->8000/tcp
+hw_3_template-redis-1   redis:7.4-alpine     "docker-entrypoint.s…"   redis     About a minute ago   Up 10 seconds (healthy)       6379/tcp
+{"greeting": "Привет, ВШЭ", "count": 3, "hostname": "43a99841ed09", "storage": "redis"}
+{"greeting": "Привет, ВШЭ", "count": 4, "hostname": "43a99841ed09", "storage": "redis"}
+```
